@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dring documentation</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --text: #1d2329;
+      --muted: #59636e;
+      --line: #d7dde3;
+      --bg: #f7f9fb;
+      --panel: #ffffff;
+      --accent: #0b6b8f;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 56px 24px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(36px, 6vw, 64px);
+      letter-spacing: 0;
+    }
+    p {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+    a.card {
+      display: block;
+      padding: 20px;
+      color: inherit;
+      text-decoration: none;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    a.card:hover {
+      border-color: var(--accent);
+    }
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 19px;
+    }
+    .card span {
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>dring</h1>
+    <p>
+      Dust-ring modeling, forward-profile generation, and Bayesian fitting
+      tools for multi-wavelength radial continuum profiles.
+    </p>
+    <section class="links" aria-label="Documentation links">
+      <a class="card" href="model_explorer.html">
+        <strong>Interactive Model Explorer</strong>
+        <span>Use sliders to inspect how alpha, vfrag, T0, and eps0 change the dust surface-density distribution.</span>
+      </a>
+      <a class="card" href="config_help.md">
+        <strong>Config Reference</strong>
+        <span>YAML input fields, priors, analysis options, and HPC fitting notes.</span>
+      </a>
+      <a class="card" href="https://github.com/SScoorge/dring">
+        <strong>GitHub Repository</strong>
+        <span>Source code, examples, and installation instructions.</span>
+      </a>
+    </section>
+  </main>
+</body>
+</html>
