@@ -17,9 +17,7 @@ pip install "dring[all]"       # fitting, MPI, and optional speed tools
 For local development from this repository, replace `dring` with `-e .`.
 
 The base install depends only on NumPy. The fitting extra adds SciPy, PyYAML,
-UltraNest, HDF5 support, and Matplotlib. During the beta stage the fitting
-extra pins NumPy below 2 because UltraNest 3.x C extensions are not reliably
-NumPy-2 compatible on older HPC systems. MPI is optional and only installed
+UltraNest, HDF5 support, and Matplotlib. MPI is optional and only installed
 with the `mpi` extra.
 
 ## Layer 1: Model
@@ -129,8 +127,9 @@ The same CLI is available as a module:
 python -m dring fit -c configs/HD163296_ring1.yaml
 ```
 
-The fitting extra uses UltraNest 3.x (`ultranest>=3.6,<4`) by default to keep
-sampling behavior stable during the beta stage.
+The fitting extra requires UltraNest (`ultranest>=3.6`). Recent UltraNest
+versions support NumPy 2; if you intentionally use an older UltraNest 3.x stack
+on an HPC system, keep NumPy below 2 in that environment.
 
 Each fit writes the resolved YAML file to the result directory as
 `config.yaml`. Keep this file with the chains; the analysis helpers can then
@@ -180,11 +179,11 @@ source .venv/bin/activate
 python -m pip install -U pip setuptools wheel
 
 # Pure/easy fitting dependencies first.
-python -m pip install "numpy>=1.20,<2" "scipy>=1.7" pyyaml "h5py>=3.7" matplotlib
+python -m pip install "numpy>=1.20" "scipy>=1.7" pyyaml "h5py>=3.7" matplotlib
 
 # UltraNest may build from source on HPC; old GCC needs C99 enabled.
 export CFLAGS="-std=c99"
-python -m pip install "ultranest>=3.6,<4"
+python -m pip install "ultranest>=3.6"
 
 # MPI is required for cluster parallel runs.
 python -m pip install "mpi4py>=3"
@@ -194,8 +193,10 @@ python -m pip install -e . --no-deps
 ```
 
 `CFLAGS` is only needed while installing UltraNest; it is not required at run
-time. If `mpi4py` fails, check that the MPI compiler wrapper (`mpicc`) is
-available in the active environment.
+time. If you see a NumPy binary-compatibility error after changing NumPy
+versions, reinstall NumPy and UltraNest in the same environment. If `mpi4py`
+fails, check that the MPI compiler wrapper (`mpicc`) is available in the active
+environment.
 
 If a cluster already provides a working scientific Python/MPI stack, create a
 disposable venv with `--system-site-packages` and install only `dring`:
