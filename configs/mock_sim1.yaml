@@ -1,0 +1,96 @@
+data:
+  bands:
+  - wavelength_cm: 0.0882
+    angular_resolution_arcsec: 0.0658
+    cal_error: 0.1
+    profile_path: data/mock_sim1_band7.npz
+    band_name: band7
+  - wavelength_cm: 0.1254
+    angular_resolution_arcsec: 0.0928
+    cal_error: 0.1
+    profile_path: data/mock_sim1_band6.npz
+    band_name: band6
+  - wavelength_cm: 0.2985
+    angular_resolution_arcsec: 0.2188
+    cal_error: 0.05
+    profile_path: data/mock_sim1_band3.npz
+    band_name: band3
+opacity:
+  size_opac: data/default_opacity_dsharp/size_opac.npy
+  lam_opac: data/default_opacity_dsharp/lam_opac.npy
+  k_abs_opac: data/default_opacity_dsharp/k_abs_opac.npy
+  k_sca_opac: data/default_opacity_dsharp/k_sca_opac.npy
+  g_sca_opac: data/default_opacity_dsharp/g_sca_opac.npy
+  rhos_opac: data/default_opacity_dsharp/rhos_opac.npy
+beam_deprojection: false
+calibration_prior: flat
+calibration_prior_nsigma: 3.0
+calibration_prior_min: 1.0e-06
+distance_pc: 101.2
+inclination_deg: 46.0
+fit_radii_au:
+- 95.0
+- 100.0
+- 105.0
+model:
+  stellar_mass_msun: 1.9
+  ring_center_au: 100.0
+  pressure_width_au: 23.0
+  sigma_g: 5.0
+  size_res: 100
+  a_min: 1.0e-05
+  a_max: 100.0
+  temperature_slope: -0.5
+  size_distribution_q: -3.5
+priors:
+  alpha:
+    type: flat
+    scale: log
+    min: 1.0e-06
+    max: 0.1
+  vf:
+    type: flat
+    scale: log
+    min: 1
+    max: 1.0e4
+  eps:
+    type: flat
+    scale: log
+    min: 0.001
+    max: 1.0
+  T:
+    type: flat
+    scale: linear
+    min: 5.0
+    max: 25.0
+include_calibration_penalty: true
+oversampling_correction: true
+reduced_chi2_dof: effective_data
+min_num_live_points: 400
+resume: overwrite
+make_plots: true
+output_dir: results/mock_sim1
+frac_remain: 0.01
+analysis:
+  enabled: true
+  corner:
+    enabled: true
+    output: corner.png
+    columns: [0, 1, 2, 3]
+    show_diagonal_stats: false
+    ranges:
+      alpha: [1.0e-06, 0.1]
+      vf: [1.0, 1.0e4]
+      eps: [0.001, 1.0]
+      T: [5.0, 25.0]
+  derived:
+    enabled: true
+    output: derived_summary.txt
+    tau_wavelength_cm: 0.13
+    max_samples: 100
+    progress: true
+  intensity:
+    enabled: true
+    output: intensity_bestfit.png
+    cmap: viridis
+    cmap_range: [0.08, 0.92]

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dring"
+version = "0.1.0"
+description = "Dust ring fitting and forward-model tools for multi-wavelength radial profiles."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "SHAO HPC RingFit contributors" }
+]
+dependencies = [
+  "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+fit = [
+  "numpy>=1.20,<2",
+  "scipy>=1.7",
+  "pyyaml>=5.4",
+  "ultranest>=3.6,<4",
+  "h5py>=3.7",
+  "matplotlib>=3.5",
+]
+mpi = ["mpi4py>=3"]
+plot = ["scipy>=1.7", "pyyaml>=5.4", "matplotlib>=3.5"]
+speed = ["numba"]
+all = [
+  "numpy>=1.20,<2",
+  "scipy>=1.7",
+  "pyyaml>=5.4",
+  "ultranest>=3.6,<4",
+  "h5py>=3.7",
+  "matplotlib>=3.5",
+  "mpi4py>=3",
+  "numba",
+]
+dev = ["build", "twine"]
+
+[project.scripts]
+dring = "dring.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dring*", "ringfit*"]
+
+[tool.setuptools.package-data]
+dring = ["examples/*", "examples/default_opacity_dsharp/*"]

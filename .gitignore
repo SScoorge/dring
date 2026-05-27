@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.nbc
+*.nbi
+build/
+dist/
+*.egg-info/
+results/*
+!results/.gitkeep
+.DS_Store
+._*
+.matplotlib/

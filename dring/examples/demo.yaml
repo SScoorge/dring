@@ -1,0 +1,67 @@
+data:
+  bands:
+  - wavelength_cm: 0.089
+    angular_resolution_arcsec: 0.07
+    cal_error: 0.1
+    profile_path: example_band7.npz
+    band_name: band7
+  - wavelength_cm: 0.13
+    angular_resolution_arcsec: 0.05
+    cal_error: 0.1
+    profile_path: example_band6.npz
+    band_name: band6
+  - wavelength_cm: 0.32
+    angular_resolution_arcsec: 0.08
+    cal_error: 0.05
+    profile_path: example_band3.npz
+    band_name: band3
+opacity:
+  size_opac: default_opacity_dsharp/size_opac.npy
+  lam_opac: default_opacity_dsharp/lam_opac.npy
+  k_abs_opac: default_opacity_dsharp/k_abs_opac.npy
+  k_sca_opac: default_opacity_dsharp/k_sca_opac.npy
+  g_sca_opac: default_opacity_dsharp/g_sca_opac.npy
+  rhos_opac: default_opacity_dsharp/rhos_opac.npy
+distance_pc: 100.0
+inclination_deg: 45.0
+fit_radii_au:
+- 95.0
+- 100.0
+- 105.0
+model:
+  stellar_mass_msun: 1.9
+  ring_center_au: 100.0
+  pressure_width_au: 14.4
+  sigma_g: 10.5
+  size_res: 80
+  a_min: 1.0e-05
+  a_max: 100.0
+  temperature_slope: -0.5
+  size_distribution_q: -3.5
+priors:
+  alpha:
+    type: flat
+    scale: log
+    min: 1.0e-06
+    max: 0.1
+  vf:
+    type: flat
+    scale: log
+    min: 1.0
+    max: 1.0e4
+  eps:
+    type: flat
+    scale: log
+    min: 0.001
+    max: 1.0
+  T:
+    type: flat
+    scale: linear
+    min: 5.0
+    max: 30.0
+sampler:
+  min_num_live_points: 100
+  frac_remain: 0.5
+resume: overwrite
+make_plots: false
+output_dir: demo_results
