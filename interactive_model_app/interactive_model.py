@@ -2,7 +2,7 @@
 
 Run locally from the repository root with:
 
-    streamlit run examples/interactive_model.py
+    streamlit run interactive_model_app/interactive_model.py
 """
 
 from __future__ import annotations
