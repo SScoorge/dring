@@ -17,11 +17,40 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import dring
 from ringfit import constants as c
+from ringfit.model import DustRingModel
 
 
 st.set_page_config(page_title="dring model explorer", layout="wide")
+
+
+def make_interactive_model(
+    *,
+    alpha: float,
+    vf: float,
+    sigma_g: float,
+    eps: float,
+    pressure_width_au: float,
+    temperature: float,
+    ring_center_au: float,
+    stellar_mass_msun: float,
+    r_grid_au,
+    size_res: int,
+):
+    model = DustRingModel(
+        alpha,
+        vf,
+        sigma_g,
+        eps,
+        pressure_width_au * c.au,
+        temperature,
+        R_0=ring_center_au * c.au,
+        M_star=stellar_mass_msun * c.M_sun,
+        r_grid=np.asarray(r_grid_au, dtype=float) * c.au,
+        size_res=int(size_res),
+    )
+    model.run_model()
+    return model
 
 
 @st.cache_data(show_spinner=False)
@@ -40,7 +69,7 @@ def compute_sigma_dust(
     size_res: int,
 ):
     r_grid_au = np.linspace(float(r_min_au), float(r_max_au), int(n_r))
-    model = dring.make_model(
+    model = make_interactive_model(
         alpha=10.0**float(log_alpha),
         vf=10.0**float(log_vfrag),
         sigma_g=float(sigma_g),
