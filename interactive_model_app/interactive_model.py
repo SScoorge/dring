@@ -89,7 +89,7 @@ def compute_sigma_dust(
     eps0 = float(10.0**log_eps)
     st0 = 0.5 * np.pi * float(model.rho_s) * float(model.aFrag_0) / float(model.Sg_0)
     if np.isfinite(eps_crit_drift) and eps0 >= eps_crit_drift and eps0 > eps_crit_diff:
-        regime = "drift/self-concentrated"
+        regime = "growth dominated"
     elif np.isfinite(eps_crit_diff) and eps0 <= eps_crit_diff:
         regime = "diffusion-dominated"
     else:
