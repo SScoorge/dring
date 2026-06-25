@@ -48,15 +48,30 @@ def compute_sigma_dust(
     plot_quantity = np.asarray(model.SigmaDust, dtype=float).T / model.dlnm
     with np.errstate(divide="ignore", invalid="ignore"):
         log_sigma = np.log10(plot_quantity)
+    eps_crit_drift = float(getattr(model, "eps_crit_drift", np.nan))
+    eps_crit_diff = float(getattr(model, "eps_crit_diff", np.nan))
+    eps0 = float(10.0**log_eps)
+    st0 = 0.5 * np.pi * float(model.rho_s) * float(model.aFrag_0) / float(model.Sg_0)
+    if np.isfinite(eps_crit_drift) and eps0 >= eps_crit_drift and eps0 > eps_crit_diff:
+        regime = "drift/self-concentrated"
+    elif np.isfinite(eps_crit_diff) and eps0 <= eps_crit_diff:
+        regime = "diffusion-dominated"
+    else:
+        regime = "intermediate"
+
     return {
         "r_au": model.r_grid / c.au,
         "size_cm": model.size,
         "log_sigma": log_sigma,
         "a_frag": float(model.aFrag_0),
+        "St0": float(st0),
+        "eps_crit_drift": eps_crit_drift,
+        "eps_crit_diff": eps_crit_diff,
+        "regime": regime,
         "ring_center_au": float(model.R_0 / c.au),
         "alpha": float(10.0**log_alpha),
         "vfrag": float(10.0**log_vfrag),
-        "eps": float(10.0**log_eps),
+        "eps": eps0,
         "temperature": float(temperature),
     }
 
@@ -141,7 +156,11 @@ def main() -> None:
         st.metric("vfrag", f"{data['vfrag']:.3g} cm/s")
         st.metric("T0", f"{data['temperature']:.1f} K")
         st.metric("eps0", f"{data['eps']:.3e}")
+        st.metric("eps_drift", f"{data['eps_crit_drift']:.3e}")
+        st.metric("eps_diff", f"{data['eps_crit_diff']:.3e}")
         st.metric("a_frag", f"{data['a_frag']:.3e} cm")
+        st.metric("St0", f"{data['St0']:.3e}")
+        st.caption(f"Regime: {data['regime']}")
 
 
 if __name__ == "__main__":
