@@ -2,8 +2,8 @@
 
 `dring` is a fast semi-analytic physical model for dust-trapping rings in
 protoplanetary disks. It is designed to connect multi-wavelength ring
-continuum observations to physical parameters such as turbulence, fragmentation
-velocity, dust-to-gas ratio, and temperature.
+continuum observations to physical parameters such as turbulence and fragmentation
+velocity.
 
 The package can be used at three levels: build a dust-ring model, forward-model
 multi-wavelength intensity profiles, or run Bayesian fitting.
@@ -72,7 +72,7 @@ python -m dring fit -c configs/HD163296_ring1_eg.yaml
 The fit writes posterior plots, derived quantities, and the best-fit intensity
 comparison to the configured result directory.
 
-The configuration files and input data used for the paper examples are included
+The configuration files and input data used for the paper are included
 under `configs/` and `data/`.
 
 ## Layer 1: Model
@@ -132,20 +132,21 @@ The paper-release/default continuum treatment is the original Zhu et al.
 scattering_formula: zhu2019
 ```
 
-An optional `kataoka2026` mode is included only as a reference and comparison
-tool. For convenience, `dring` bundles a small coefficient table generated from
-the public Kitade & Kataoka 2026 `emergentintensity` Stokes-I tables, so users
-can try the formula without downloading external files:
+An optional Kitade & Kataoka 2026 mode (`kataoka2026`) is included only as a
+reference and comparison tool. For convenience, `dring` bundles a small
+coefficient table generated from the public Kitade & Kataoka 2026
+`emergentintensity` Stokes-I tables, so users can try the formula without
+downloading external files:
 
 ```yaml
 scattering_formula: kataoka2026
 ```
 
 This bundled table is not intended to replace the authors' official data/code
-for rigorous work. If a project relies scientifically on the Kataoka2026
-formula, users should consult the official `emergentintensity` release, build
-or validate the coefficient table for their use case, and pass it explicitly
-with `kataoka2026_coeffs`.
+for rigorous work. If a project relies scientifically on the Kitade & Kataoka
+2026 formula, users should consult the official `emergentintensity` release,
+build or validate the coefficient table for their use case, and pass it
+explicitly with `kataoka2026_coeffs`.
 
 ```python
 r_au, raw_intensity = dring.compute_profile(

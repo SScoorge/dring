@@ -88,13 +88,14 @@ def _as_kataoka_coeffs_dict(coeffs):
 
 
 def load_kataoka2026_coeffs(path=None):
-    """Load a Kitade/Kataoka 2026 Stokes-I coefficient table.
+    """Load a Kitade & Kataoka 2026 Stokes-I coefficient table.
 
     If ``path`` is omitted, this loads the bundled convenience table generated
     from the public ``emergentintensity`` Stokes-I RT tables and fitting
     formula. The bundled table is intended for reference/comparison only. For
-    rigorous scientific fits using the Kataoka2026 mode, users should obtain
-    the official data/code and pass a validated coefficient file explicitly.
+    rigorous scientific fits using the Kitade & Kataoka 2026 mode, users
+    should obtain the official data/code and pass a validated coefficient file
+    explicitly.
     """
     if path is None:
         coeff_path = resources.files("ringfit.kataoka2026_coeffs").joinpath(
