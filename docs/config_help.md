@@ -132,47 +132,31 @@ model:
 - `temperature_slope`: radial temperature power-law slope.
 - `size_distribution_q`: grain-size distribution slope.
 
-The radial model grid is automatic by default. The code uses the fitted radii,
-`ring_center_au`, and the largest beam to choose a safe radial range. The number
-of radial points is also automatic:
+The radial model grid is automatic by default. In normal use, users do not need
+to set it manually. The code chooses a linear radial grid that covers both the
+fitted radii and the ring model:
+
+```text
+r_min, r_max cover:
+  all fit_radii_au with padding of 5 * max(beam FWHM)
+  ring_center_au +/- 5 * pressure_width_au
+```
+
+The grid spacing is also automatic:
 
 ```text
 dr <= min(beam_min / 5, pressure_width_au / 8, 1 au)
 80 <= n_grid <= 300
 ```
 
-Manual override:
+To force a specific radial grid, use:
 
 ```yaml
 model:
   r_grid_au: [50.0, 80.0, 120]
 ```
 
-Advanced radial-grid tuning is optional and normally does not need to be set.
-These options only control the numerical grid used to evaluate the model; they
-are not fitted physical parameters.
-
-```yaml
-model:
-  r_grid_n: 120              # fixed number of grid points
-  r_grid_beam_margin: 5.0    # radial padding in units of max beam
-  r_grid_extra_margin_au: 0.0
-  r_grid_beam_points: 5.0    # points per minimum beam FWHM
-  r_grid_width_points: 8.0   # points per pressure width
-  r_grid_max_dr_au: 1.0
-  r_grid_min_dr_au: 0.05
-  r_grid_min_n: 80
-  r_grid_max_n: 300
-```
-
-- `r_grid_n`: force the number of radial grid points.
-- `r_grid_beam_margin`: radial padding on each side in units of the largest beam.
-- `r_grid_extra_margin_au`: extra radial padding in au.
-- `r_grid_beam_points`: target number of grid points per smallest beam FWHM.
-- `r_grid_width_points`: target number of grid points per pressure width.
-- `r_grid_max_dr_au`: maximum allowed radial spacing in au.
-- `r_grid_min_dr_au`: minimum allowed radial spacing in au.
-- `r_grid_min_n`, `r_grid_max_n`: lower and upper limits for automatic grid size.
+This means `r_min=50 au`, `r_max=80 au`, and `n_grid=120`.
 
 ## Priors
 
