@@ -119,6 +119,9 @@ model.SDplot("sigma_dust.png")
 `SDplot` uses Matplotlib, so install the plotting/fitting extra if your base
 environment does not already provide it.
 
+For a quick visual exploration of the model parameters, try the interactive
+model explorer: **https://dring-model-interactive.streamlit.app/**
+
 ## Layer 2: Radiative Transfer And Beaming
 
 The forward-profile layer turns a dust model into intensity profiles. It
