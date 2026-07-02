@@ -15,7 +15,7 @@ from .data import (
     load_observation_bands,
     normalize_opacity_data,
 )
-from .model import DustRingModel
+from .model import DustRingModel, load_kataoka2026_coeffs
 
 
 def mpi_rank():
@@ -67,6 +67,13 @@ def write_run_config(config, output_dir):
         if path_value.is_absolute():
             try:
                 config_to_write["output_dir"] = str(path_value.relative_to(project_root))
+            except ValueError:
+                pass
+    if config_to_write.get("kataoka2026_coeffs") is not None:
+        path_value = Path(config_to_write["kataoka2026_coeffs"]).expanduser()
+        if path_value.is_absolute():
+            try:
+                config_to_write["kataoka2026_coeffs"] = str(path_value.relative_to(project_root))
             except ValueError:
                 pass
 
@@ -268,6 +275,16 @@ class RingFitProblem:
 
         opacity_cfg = config["opacity"]
         self.opacity = normalize_opacity_data(opacity_cfg)
+        self.scattering_formula = str(config.get("scattering_formula", "zhu2019")).lower()
+        # Persist the resolved formula in result/config.yaml so posterior
+        # reprocessing is tied to the model actually used for the run.
+        self.config["scattering_formula"] = self.scattering_formula
+        self.kataoka_coeffs = None
+        if self.scattering_formula == "kataoka2026":
+            coeff_path = config.get("kataoka2026_coeffs")
+            self.kataoka_coeffs = load_kataoka2026_coeffs(coeff_path)
+        elif self.scattering_formula != "zhu2019":
+            raise ValueError("scattering_formula must be 'zhu2019' or 'kataoka2026'")
         self.model_cfg = config["model"]
         self.model_r_grid_au = self._load_model_r_grid_au()
         self.model_size = np.logspace(
@@ -447,6 +464,8 @@ class RingFitProblem:
             self.inclination_deg,
             self.opacity_at_model_size["k_abs"],
             self.opacity_at_model_size["k_sca_eff"],
+            scattering_formula=self.scattering_formula,
+            kataoka_coeffs=self.kataoka_coeffs,
         )
         return self.model_r_grid_au, raw
 

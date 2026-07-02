@@ -36,7 +36,6 @@ all = [
   "ultranest>=3.6",
   "h5py>=3.7",
   "matplotlib>=3.5",
-  "streamlit>=1.30",
   "mpi4py>=3",
   "numba",
 ]
@@ -50,3 +49,4 @@ include = ["dring*", "ringfit*"]
 
 [tool.setuptools.package-data]
 dring = ["examples/*", "examples/default_opacity_dsharp/*"]
+ringfit = ["kataoka2026_coeffs/*"]

@@ -1,24 +1,79 @@
 # dring
 
-Open-source dust-ring modeling, forward-profile generation, and Bayesian
-fitting tools for multi-wavelength radial continuum profiles.
+`dring` is a fast semi-analytic physical model for dust-trapping rings in
+protoplanetary disks. It is designed to connect multi-wavelength ring
+continuum observations to physical parameters such as turbulence, fragmentation
+velocity, dust-to-gas ratio, and temperature.
 
-`dring` is organized in three layers so users can install only what they need.
+The package can be used at three levels: build a dust-ring model, forward-model
+multi-wavelength intensity profiles, or run Bayesian fitting.
 
-## Installation Layers
+## Installation
+
+For users who only want the physical dust-ring model and forward profiles:
 
 ```bash
-pip install dring              # layer 1 + 2 core tools
-pip install "dring[fit]"       # layer 3 Bayesian fitting and analysis
-pip install "dring[fit,mpi]"   # layer 3 with MPI parallel execution
-pip install "dring[all]"       # fitting, MPI, and optional speed tools
+pip install dring
 ```
 
-For local development from this repository, replace `dring` with `-e .`.
+For fitting observed radial profiles with the Bayesian module:
+
+```bash
+pip install "dring[fit]"
+```
+
+For MPI acceleration on clusters:
+
+```bash
+pip install "dring[fit,mpi]"
+```
+
+For local development from this repository, use the same extras but replace
+`dring` with `-e .`:
+
+```bash
+pip install -e .
+pip install -e ".[fit]"
+pip install -e ".[fit,mpi]"
+```
 
 The base install depends only on NumPy. The fitting extra adds SciPy, PyYAML,
 UltraNest, HDF5 support, and Matplotlib. MPI is optional and only installed
 with the `mpi` extra.
+
+## Quick Start
+
+Build a dust-trapping ring model directly from physical parameters:
+
+```python
+import dring
+
+model = dring.make_model(
+    alpha=1e-3,
+    vf=100.0,
+    sigma_g=10.5,
+    eps=0.03,
+    pressure_width_au=14.4,
+    temperature=20.0,
+    ring_center_au=67.0,
+    stellar_mass_msun=1.9,
+)
+
+print(model.SigmaDust.shape)
+model.SDplot("quickstart_sigma_dust.png")
+```
+
+To run a small fitting example from this repository:
+
+```bash
+python -m dring fit -c configs/HD163296_ring1_eg.yaml
+```
+
+The fit writes posterior plots, derived quantities, and the best-fit intensity
+comparison to the configured result directory.
+
+The configuration files and input data used for the paper examples are included
+under `configs/` and `data/`.
 
 ## Layer 1: Model
 
@@ -64,21 +119,33 @@ model.SDplot("sigma_dust.png")
 `SDplot` uses Matplotlib, so install the plotting/fitting extra if your base
 environment does not already provide it.
 
-### Interactive Model Explorer
-
-[![Interactive model explorer](interactive_model_app/dring_interactive.png)](https://dring-model-interactive.streamlit.app/)
-
-**Try the interactive model explorer here:
-[https://dring-model-interactive.streamlit.app/](https://dring-model-interactive.streamlit.app/)**
-
-The browser app lets users drag `alpha`, `vfrag`, `T0`, and `eps0` sliders and
-inspect the resulting dust surface-density distribution.
-
 ## Layer 2: Radiative Transfer And Beaming
 
 The forward-profile layer turns a dust model into intensity profiles. It
 exposes the intermediate model products, so users can connect `dring` to their
 own radiative-transfer, MCMC, or plotting tools.
+
+The paper-release/default continuum treatment is the original Zhu et al.
+2019-style slab-scattering approximation:
+
+```yaml
+scattering_formula: zhu2019
+```
+
+An optional `kataoka2026` mode is included only as a reference and comparison
+tool. For convenience, `dring` bundles a small coefficient table generated from
+the public Kitade & Kataoka 2026 `emergentintensity` Stokes-I tables, so users
+can try the formula without downloading external files:
+
+```yaml
+scattering_formula: kataoka2026
+```
+
+This bundled table is not intended to replace the authors' official data/code
+for rigorous work. If a project relies scientifically on the Kataoka2026
+formula, users should consult the official `emergentintensity` release, build
+or validate the coefficient table for their use case, and pass it explicitly
+with `kataoka2026_coeffs`.
 
 ```python
 r_au, raw_intensity = dring.compute_profile(
@@ -264,10 +331,10 @@ Edit one of the YAML files in `configs/`:
 - `model`: stellar mass, pressure-bump center, width, radial grid, and related model settings.
 - `priors`: fitting ranges for `alpha`, `vf`, `eps`, and `T`.
 
-Advanced options can be omitted. By default, `beam_deprojection` is false,
-`oversampling_correction` is true, `include_calibration_penalty` is true, and
-the calibration factors use a flat `1 +/- 3*cal_error` sampling prior with a
-Gaussian calibration penalty in the likelihood.
+Advanced options can be omitted. By default, `oversampling_correction` is true,
+`include_calibration_penalty` is true, and the calibration factors use a flat
+`1 +/- 3*cal_error` sampling prior with a Gaussian calibration penalty in the
+likelihood.
 
 The sampled parameters are:
 
@@ -277,20 +344,13 @@ alpha, vf, eps, T, c_lam1, c_lam2, ...
 
 where each `c_lam*` is the band-dependent multiplicative calibration factor.
 
-## Beam And Oversampling
+## Beam Smoothing And Oversampling
 
 For model smoothing, the code uses the effective 1D angular resolution supplied
 for each band:
 
 ```text
 beam_eff = angular_resolution_arcsec
-```
-
-If `beam_deprojection: true`, the beam is broadened in the deprojected disk
-plane:
-
-```text
-beam_eff = beam_eff / sqrt(cos(inclination_deg))
 ```
 
 When `oversampling_correction: true`, the likelihood uses method A: it inflates

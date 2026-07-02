@@ -186,6 +186,8 @@ def data_chi2(problem, params, r_grid_au, model):
             problem.inclination_deg,
             problem.opacity_at_model_size["k_abs"],
             problem.opacity_at_model_size["k_sca_eff"],
+            scattering_formula=getattr(problem, "scattering_formula", "zhu2019"),
+            kataoka_coeffs=getattr(problem, "kataoka_coeffs", None),
         )
     else:
         raw = DustRingModel.scattering(
@@ -199,6 +201,8 @@ def data_chi2(problem, params, r_grid_au, model):
             problem.opacity["k_abs"],
             problem.opacity["k_sca"],
             problem.opacity["g"],
+            scattering_formula=getattr(problem, "scattering_formula", "zhu2019"),
+            kataoka_coeffs=getattr(problem, "kataoka_coeffs", None),
         )
 
     cal_factors = np.asarray(params[4 : 4 + problem.n_band], dtype=float)

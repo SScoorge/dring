@@ -1,3 +1,4 @@
+scattering_formula: zhu2019
 data:
   bands:
   - wavelength_cm: 0.0882

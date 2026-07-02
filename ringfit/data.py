@@ -48,6 +48,8 @@ def load_config(path):
 
     if config.get("output_dir") is not None:
         config["output_dir"] = _remap_project_path(config["output_dir"], project_root)
+    if config.get("kataoka2026_coeffs") is not None and isinstance(config["kataoka2026_coeffs"], str):
+        config["kataoka2026_coeffs"] = _remap_project_path(config["kataoka2026_coeffs"], project_root)
 
     return config
 
@@ -74,7 +76,7 @@ def _read_named_npz(path):
     return {key: obj[key] for key in obj.files}
 
 
-def load_band_profile(band, radius_unit="auto"):
+def load_band_profile(band, radius_unit="auto", rms_scale=1.0):
     """Load one band's radius, intensity, and rms_error arrays."""
     band_label = band.get("band_name", "band")
     if band.get("profile_path") is not None:
@@ -88,7 +90,9 @@ def load_band_profile(band, radius_unit="auto"):
 
     radius = _radius_to_au(np.asarray(profile["radius"], dtype=float), radius_unit)
     intensity = np.asarray(profile["intensity"], dtype=float)
-    rms_error = np.asarray(profile["rms_error"], dtype=float)
+    rms_error = np.asarray(profile["rms_error"], dtype=float) * float(
+        band.get("rms_scale", rms_scale)
+    )
 
     if radius.ndim != 1:
         raise ValueError(f"{band_label} radius must be a 1D array, got shape {radius.shape}")
@@ -112,6 +116,7 @@ def load_observation_bands(config):
         raise KeyError("data.bands must contain at least one wavelength band")
 
     radius_unit = data_cfg.get("radius_unit", "auto")
+    rms_scale = float(data_cfg.get("rms_scale", 1.0))
     wavelengths = []
     band_names = []
     angular_resolution = []
@@ -129,7 +134,11 @@ def load_observation_bands(config):
         if missing:
             raise KeyError(f"data.bands[{i}] is missing required fields: {missing}")
 
-        r_i, intensity_i, rms_i = load_band_profile(band, radius_unit=radius_unit)
+        r_i, intensity_i, rms_i = load_band_profile(
+            band,
+            radius_unit=radius_unit,
+            rms_scale=rms_scale,
+        )
         wavelengths.append(float(band["wavelength_cm"]))
         band_names.append(str(band.get("band_name", f"band{i + 1}")))
         angular_resolution.append(float(band["angular_resolution_arcsec"]))

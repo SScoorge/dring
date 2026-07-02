@@ -1,3 +1,4 @@
+scattering_formula: zhu2019
 data:
   bands:
   - wavelength_cm: 0.0882
@@ -22,7 +23,6 @@ opacity:
   k_sca_opac: data/default_opacity_dsharp/k_sca_opac.npy
   g_sca_opac: data/default_opacity_dsharp/g_sca_opac.npy
   rhos_opac: data/default_opacity_dsharp/rhos_opac.npy
-beam_deprojection: false
 calibration_prior: flat
 calibration_prior_nsigma: 3.0
 calibration_prior_min: 1.0e-06

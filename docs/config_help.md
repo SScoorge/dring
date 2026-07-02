@@ -316,23 +316,12 @@ sampler:
 These options can be omitted from normal configs:
 
 ```yaml
-beam_deprojection: false
 oversampling_correction: true
 include_calibration_penalty: true
 calibration_prior: flat
 calibration_prior_nsigma: 3.0
 reduced_chi2_dof: raw_data
 sampler.stepsampler:
-```
-
-### Beam Deprojection
-
-Each band supplies an effective circular angular resolution. If
-`beam_deprojection: true`, that value is broadened in the deprojected disk
-plane by:
-
-```text
-1 / sqrt(cos(inclination_deg))
 ```
 
 ### Oversampling Correction
@@ -347,6 +336,45 @@ sigma_eff_i = sigma_rms_i * sqrt(N_i)
 
 This preserves the likelihood form while reducing the overweighting of
 oversampled radial-profile points.
+
+## Continuum Scattering Formula
+
+By default, the paper-release configuration uses the original Zhu et al.
+2019-style slab-scattering continuum approximation:
+
+```yaml
+scattering_formula: zhu2019
+```
+
+The Kitade & Kataoka 2026 Stokes-I fitting formula is also available only as a
+reference/comparison mode:
+
+```yaml
+scattering_formula: kataoka2026
+```
+
+For `kataoka2026`, the required `A_I`, `B_I`, `I_conv`, and `omega_I`
+coefficient table is bundled locally with the package under
+`ringfit/kataoka2026_coeffs/`, generated from the authors' official
+`emergentintensity` Stokes-I RT tables and fitting formula. Runtime model
+evaluation does not download data or refit coefficients.
+
+This bundled table is provided for convenience, testing, and comparison. It is
+not a substitute for the official Kitade & Kataoka data/code in rigorous
+scientific fitting. Users who rely on `kataoka2026` should obtain the official
+tables/code, validate or regenerate coefficients for their use case, and pass
+their coefficient file explicitly:
+
+```yaml
+kataoka2026_coeffs: path/to/kataoka2026_stokesI_coeffs.npz
+```
+
+The opacity treatment still uses the effective-scattering approximation
+`kappa_sca_eff = (1 - g) * kappa_sca`, which may be unreliable for strongly
+forward-peaked scattering, especially porous or very large grains.
+The official Stokes-I coefficient table is validated through `omega=0.9`; if
+the effective albedo is between 0.9 and 1.0, coefficient interpolation is
+clamped at the published upper grid edge rather than extrapolated.
 
 ## Optional Speed Dependency
 

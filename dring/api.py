@@ -11,7 +11,7 @@ import numpy as np
 from ringfit import constants as c
 from ringfit.data import load_config as _load_config
 from ringfit.data import normalize_opacity_data
-from ringfit.model import DustRingModel
+from ringfit.model import DustRingModel, load_kataoka2026_coeffs
 
 __version__ = "0.1.0"
 
@@ -206,6 +206,8 @@ def compute_profile(
     opacity: Mapping[str, Any] | None = None,
     opacity_path: str | Path | None = None,
     inclination_deg: float = 0.0,
+    scattering_formula: str = "zhu2019",
+    kataoka_coeffs: Mapping[str, Any] | str | Path | None = None,
 ):
     """Compute model intensity profiles.
 
@@ -246,6 +248,9 @@ def compute_profile(
         k_abs[iwv] = np.interp(model.size, opacity_a, k_abs_at_wav)
         k_sca_eff[iwv] = np.interp(model.size, opacity_a, (1.0 - g_at_wav) * k_sca_at_wav)
 
+    if isinstance(kataoka_coeffs, (str, Path)):
+        kataoka_coeffs = load_kataoka2026_coeffs(kataoka_coeffs)
+
     return model.r_grid / c.au, DustRingModel.scattering_precomputed(
         wavelengths_cm,
         model.SigmaDust,
@@ -253,6 +258,8 @@ def compute_profile(
         inclination_deg,
         k_abs,
         k_sca_eff,
+        scattering_formula=scattering_formula,
+        kataoka_coeffs=kataoka_coeffs,
     )
 
 

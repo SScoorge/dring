@@ -1,10 +1,14 @@
 """Forward model for a pressure-bump dust ring."""
 
+from importlib import resources
+
 import numpy as np
 
 from . import constants as c
 
 SIGMA_DUST_FLOOR = 1e-30
+KATAOKA2026_TAU_SWITCH = 0.04
+KATAOKA2026_DEFAULT_COEFF_FILE = "kataoka2026_stokesI_coeffs.npz"
 
 try:
     from numba import njit
@@ -33,6 +37,178 @@ def _scattering_rt_numpy(obs_lam, T, theta, kav_abs, kav_sca_eff):
             * (1 - albedo[iwv] * (numerator / denominator))
             * 1e23
         )
+    return intensity
+
+
+def planck_lambda_cgs(T, lambda_cm):
+    """Planck function B_lambda(T, lambda) in cgs per cm wavelength."""
+    T = np.asarray(T, dtype=float)
+    lambda_cm = np.asarray(lambda_cm, dtype=float)
+    if np.any(T <= 0):
+        raise ValueError("T must be positive")
+    if np.any(lambda_cm <= 0):
+        raise ValueError("lambda_cm must be positive")
+
+    kb = 1.380649e-16
+    clight = 29979245800.0
+    hplanck = 6.626176e-27
+    x = hplanck * clight / (lambda_cm * kb * T)
+    return (2.0 * hplanck * clight**2 / lambda_cm**5) / np.expm1(x)
+
+
+def _lambda_to_cm(lambda_, lambda_unit):
+    unit = str(lambda_unit).lower()
+    if unit in ("cm", "centimeter", "centimeters"):
+        factor = 1.0
+    elif unit in ("mm", "millimeter", "millimeters"):
+        factor = 0.1
+    elif unit in ("micron", "microns", "um", "mum"):
+        factor = 1e-4
+    else:
+        raise ValueError("lambda_unit must be 'cm', 'mm', or 'micron'")
+    return np.asarray(lambda_, dtype=float) * factor
+
+
+def _as_kataoka_coeffs_dict(coeffs):
+    if coeffs is None:
+        coeffs = load_kataoka2026_coeffs()
+    if hasattr(coeffs, "files"):
+        coeffs = {key: coeffs[key] for key in coeffs.files}
+    missing = [key for key in ("omega_grid", "mu_grid", "A_I", "B_I", "I_conv", "omega_I") if key not in coeffs]
+    if missing:
+        raise KeyError(f"Kataoka2026 coefficient table is missing fields: {missing}")
+    return {
+        "omega_grid": np.asarray(coeffs["omega_grid"], dtype=float),
+        "mu_grid": np.asarray(coeffs["mu_grid"], dtype=float),
+        "A_I": np.asarray(coeffs["A_I"], dtype=float),
+        "B_I": np.asarray(coeffs["B_I"], dtype=float),
+        "I_conv": np.asarray(coeffs["I_conv"], dtype=float),
+        "omega_I": np.asarray(coeffs["omega_I"], dtype=float),
+    }
+
+
+def load_kataoka2026_coeffs(path=None):
+    """Load a Kitade/Kataoka 2026 Stokes-I coefficient table.
+
+    If ``path`` is omitted, this loads the bundled convenience table generated
+    from the public ``emergentintensity`` Stokes-I RT tables and fitting
+    formula. The bundled table is intended for reference/comparison only. For
+    rigorous scientific fits using the Kataoka2026 mode, users should obtain
+    the official data/code and pass a validated coefficient file explicitly.
+    """
+    if path is None:
+        coeff_path = resources.files("ringfit.kataoka2026_coeffs").joinpath(
+            KATAOKA2026_DEFAULT_COEFF_FILE
+        )
+        with coeff_path.open("rb") as f:
+            return _as_kataoka_coeffs_dict(np.load(f, allow_pickle=False))
+    return _as_kataoka_coeffs_dict(np.load(path, allow_pickle=False))
+
+
+def _interp2d_coeff(table, omega_grid, mu_grid, omega, mu):
+    expected = (omega_grid.size, mu_grid.size)
+    if table.shape != expected:
+        raise ValueError(f"Kataoka2026 coefficient table must have shape {expected}, got {table.shape}")
+    if np.any(np.diff(omega_grid) <= 0) or np.any(np.diff(mu_grid) <= 0):
+        raise ValueError("Kataoka2026 omega_grid and mu_grid must be strictly increasing")
+
+    omega_flat = np.ravel(omega)
+    mu_flat = np.ravel(mu)
+    out = np.empty_like(omega_flat, dtype=float)
+    for i, (om, mm) in enumerate(zip(omega_flat, mu_flat)):
+        row_values = np.array([np.interp(mm, mu_grid, row) for row in table], dtype=float)
+        out[i] = np.interp(om, omega_grid, row_values)
+    return out.reshape(np.shape(omega))
+
+
+def interpolate_kataoka2026_coeffs(omega, mu, coeffs):
+    """Interpolate A_I, B_I, I_conv, and omega_I over omega and mu."""
+    coeffs = _as_kataoka_coeffs_dict(coeffs)
+    omega = np.asarray(omega, dtype=float)
+    mu = np.asarray(mu, dtype=float)
+    omega, mu = np.broadcast_arrays(omega, mu)
+    if np.any((omega < 0.0) | (omega > 1.0)):
+        raise ValueError("omega must satisfy 0 <= omega <= 1")
+    if np.any((mu <= 0.0) | (mu > 1.0)):
+        raise ValueError("mu must satisfy 0 < mu <= 1")
+
+    omega_grid = coeffs["omega_grid"]
+    mu_grid = coeffs["mu_grid"]
+    if np.any((mu < mu_grid.min()) | (mu > mu_grid.max())):
+        raise ValueError("mu is outside the Kataoka2026 coefficient grid")
+    # The official Stokes-I fitting tables are validated up to omega=0.9.
+    # Keep the public physical validation at 0<=omega<=1, but clamp coefficient
+    # interpolation to the published grid instead of silently extrapolating.
+    omega = np.clip(omega, omega_grid.min(), omega_grid.max())
+    return {
+        name: _interp2d_coeff(coeffs[name], omega_grid, mu_grid, omega, mu)
+        for name in ("A_I", "B_I", "I_conv", "omega_I")
+    }
+
+
+def intensity_kataoka2026_lambda(T, tau_max, omega, mu, lambda_, coeffs=None, lambda_unit="cm"):
+    """Kitade & Kataoka 2026 Stokes-I fitting formula in wavelength form.
+
+    ``lambda_`` is interpreted according to ``lambda_unit``. The returned
+    intensity is I_lambda in cgs per cm wavelength. If ``coeffs`` is not
+    supplied, the bundled reference coefficient table is loaded. This mode is
+    provided for comparison; rigorous Kataoka2026-based analyses should use
+    coefficients validated from the official authors' data/code.
+    """
+    T = np.asarray(T, dtype=float)
+    tau_max = np.asarray(tau_max, dtype=float)
+    omega = np.asarray(omega, dtype=float)
+    lambda_cm = _lambda_to_cm(lambda_, lambda_unit)
+    T, tau_max, omega, lambda_cm = np.broadcast_arrays(T, tau_max, omega, lambda_cm)
+    mu = np.asarray(mu, dtype=float)
+    if mu.ndim == 0:
+        mu = np.full_like(tau_max, float(mu))
+    else:
+        mu = np.broadcast_to(mu, tau_max.shape)
+
+    if np.any(tau_max < 0.0):
+        raise ValueError("tau_max must be >= 0")
+    if np.any(T <= 0.0):
+        raise ValueError("T must be positive")
+    if np.any((omega < 0.0) | (omega > 1.0)):
+        raise ValueError("omega must satisfy 0 <= omega <= 1")
+    if np.any((mu <= 0.0) | (mu > 1.0)):
+        raise ValueError("mu must satisfy 0 < mu <= 1")
+    if np.any(lambda_cm <= 0.0):
+        raise ValueError("lambda_ must be positive and in cm")
+
+    pars = interpolate_kataoka2026_coeffs(omega, mu, coeffs)
+    A_I = pars["A_I"]
+    B_I = pars["B_I"]
+    I_conv = pars["I_conv"]
+    omega_I = pars["omega_I"]
+
+    B_lambda = planck_lambda_cgs(T, lambda_cm)
+    tau0 = KATAOKA2026_TAU_SWITCH
+    thin = (1.0 - omega_I) * (tau_max / mu)
+    thick = (
+        I_conv * (-np.expm1(-A_I * tau_max**B_I))
+        - I_conv * (-np.expm1(-A_I * tau0**B_I))
+        + (1.0 - omega_I) * (tau0 / mu)
+    )
+    return np.where(tau_max < tau0, thin, thick) * B_lambda
+
+
+def _scattering_rt_kataoka2026(obs_lam, T, theta, kav_abs, kav_sca_eff, coeffs):
+    obs_lam = np.atleast_1d(obs_lam)
+    coeffs = load_kataoka2026_coeffs() if coeffs is None else coeffs
+    denom = kav_abs + kav_sca_eff
+    omega_eff = np.divide(kav_sca_eff, denom, out=np.zeros_like(kav_sca_eff), where=denom > 0.0)
+    tau_max = denom
+    mu = np.cos(theta * 2 * np.pi / 360)
+    if mu <= 0.0:
+        raise ValueError("inclination must give 0 < mu <= 1 for Kataoka2026 scattering")
+
+    intensity = np.zeros((len(obs_lam), len(T)), dtype=float)
+    clight = 29979245800.0
+    for iwv, lam in enumerate(obs_lam):
+        I_lambda = intensity_kataoka2026_lambda(T, tau_max[iwv], omega_eff[iwv], mu, lam, coeffs)
+        intensity[iwv] = I_lambda * lam**2 / clight * 1e23
     return intensity
 
 
@@ -439,7 +615,20 @@ class DustRingModel:
         return (2 * hplanck * mu**3) * exponential ** (-1) / (clight**2)
 
     @staticmethod
-    def scattering(obs_lam, SigmaDust, T, size, theta, a, lam, k_abs, k_sca, gsca):
+    def scattering(
+        obs_lam,
+        SigmaDust,
+        T,
+        size,
+        theta,
+        a,
+        lam,
+        k_abs,
+        k_sca,
+        gsca,
+        scattering_formula="zhu2019",
+        kataoka_coeffs=None,
+    ):
         obs_lam = np.atleast_1d(obs_lam)
         k_a = []
         k_s = []
@@ -457,10 +646,19 @@ class DustRingModel:
         albedo = np.zeros((len(obs_lam), len(SigmaDust[:, 0])))
         for iwv in range(len(obs_lam)):
             kav_abs[iwv] = (SigmaDust * np.interp(size, a, k_a[iwv])).sum(1)
+            # Effective scattering opacity approximation, k_sca_eff=(1-g)k_sca.
+            # This is the same approximation used by the old continuum module
+            # and may be unreliable for strongly forward-peaked scattering,
+            # especially porous or very large grains.
             kav_sca_eff[iwv] = (
                 SigmaDust * np.interp(size, a, ((1 - g_s) * k_s)[iwv])
             ).sum(1)
             albedo[iwv] = kav_sca_eff[iwv] / (kav_sca_eff[iwv] + kav_abs[iwv])
+
+        if scattering_formula == "kataoka2026":
+            return _scattering_rt_kataoka2026(obs_lam, T, theta, kav_abs, kav_sca_eff, kataoka_coeffs)
+        if scattering_formula != "zhu2019":
+            raise ValueError("scattering_formula must be 'zhu2019' or 'kataoka2026'")
 
         tau_d = kav_abs + kav_sca_eff
         mu = np.cos(theta * 2 * np.pi / 360)
@@ -481,13 +679,26 @@ class DustRingModel:
         return intensity
 
     @staticmethod
-    def scattering_precomputed(obs_lam, SigmaDust, T, theta, k_abs_size, k_sca_eff_size):
+    def scattering_precomputed(
+        obs_lam,
+        SigmaDust,
+        T,
+        theta,
+        k_abs_size,
+        k_sca_eff_size,
+        scattering_formula="zhu2019",
+        kataoka_coeffs=None,
+    ):
         obs_lam = np.atleast_1d(obs_lam)
         k_abs_size = np.asarray(k_abs_size, dtype=float)
         k_sca_eff_size = np.asarray(k_sca_eff_size, dtype=float)
 
         kav_abs = k_abs_size @ SigmaDust.T
         kav_sca_eff = k_sca_eff_size @ SigmaDust.T
+        if scattering_formula == "kataoka2026":
+            return _scattering_rt_kataoka2026(obs_lam, np.asarray(T, dtype=float), theta, kav_abs, kav_sca_eff, kataoka_coeffs)
+        if scattering_formula != "zhu2019":
+            raise ValueError("scattering_formula must be 'zhu2019' or 'kataoka2026'")
         if _scattering_rt_numba is not None:
             return _scattering_rt_numba(obs_lam, np.asarray(T, dtype=float), theta, kav_abs, kav_sca_eff)
         return _scattering_rt_numpy(obs_lam, np.asarray(T, dtype=float), theta, kav_abs, kav_sca_eff)
