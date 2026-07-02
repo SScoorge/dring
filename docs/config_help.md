@@ -54,7 +54,9 @@ intensity   intensity [Jy/sr], shape (n_radius,)
 rms_error   rms uncertainty [Jy/sr], shape (n_radius,)
 ```
 
-When using the Python API, these arrays can be supplied directly:
+When using the Python API, these arrays can be supplied directly. The `[0]`
+index below means the first band; use `[1]`, `[2]`, and so on for additional
+bands.
 
 ```python
 config["data"]["bands"][0]["radius"] = radius
@@ -115,9 +117,20 @@ model:
   pressure_width_au: 14.4
   sigma_g: 21.0
   size_res: 100
+  a_min: 1.0e-5
+  a_max: 100.0
   temperature_slope: -0.5
   size_distribution_q: -3.5
 ```
+
+- `stellar_mass_msun`: stellar mass in solar masses.
+- `ring_center_au`: pressure-bump/ring center in au.
+- `pressure_width_au`: Gaussian pressure width in au.
+- `sigma_g`: gas surface density at the ring center in g/cm^2.
+- `size_res`: number of grain-size grid points.
+- `a_min`, `a_max`: grain-size grid limits in cm.
+- `temperature_slope`: radial temperature power-law slope.
+- `size_distribution_q`: grain-size distribution slope.
 
 The radial model grid is automatic by default. The code uses the fitted radii,
 `ring_center_au`, and the largest beam to choose a safe radial range. The number
@@ -135,7 +148,9 @@ model:
   r_grid_au: [50.0, 80.0, 120]
 ```
 
-Optional radial-grid tuning:
+Advanced radial-grid tuning is optional and normally does not need to be set.
+These options only control the numerical grid used to evaluate the model; they
+are not fitted physical parameters.
 
 ```yaml
 model:
@@ -149,6 +164,15 @@ model:
   r_grid_min_n: 80
   r_grid_max_n: 300
 ```
+
+- `r_grid_n`: force the number of radial grid points.
+- `r_grid_beam_margin`: radial padding on each side in units of the largest beam.
+- `r_grid_extra_margin_au`: extra radial padding in au.
+- `r_grid_beam_points`: target number of grid points per smallest beam FWHM.
+- `r_grid_width_points`: target number of grid points per pressure width.
+- `r_grid_max_dr_au`: maximum allowed radial spacing in au.
+- `r_grid_min_dr_au`: minimum allowed radial spacing in au.
+- `r_grid_min_n`, `r_grid_max_n`: lower and upper limits for automatic grid size.
 
 ## Priors
 

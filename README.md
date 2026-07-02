@@ -335,6 +335,28 @@ Edit one of the YAML files in `configs/`:
 - `model`: stellar mass, pressure-bump center, width, radial grid, and related model settings.
 - `priors`: fitting ranges for `alpha`, `vf`, `eps`, and `T`.
 
+The `model` block stores fixed source/model settings. The sampled physical
+parameters are controlled by the `priors` block.
+
+Common units used in the YAML files are:
+
+```text
+wavelength_cm                 observing wavelength [cm]
+angular_resolution_arcsec      beam FWHM or effective 1D resolution [arcsec]
+distance_pc                    source distance [pc]
+inclination_deg                disk inclination [deg]
+fit_radii_au                   radii used in the likelihood [au]
+model.stellar_mass_msun        stellar mass [Msun]
+model.ring_center_au           pressure-bump center [au]
+model.pressure_width_au        Gaussian pressure width [au]
+model.sigma_g                  gas surface density at the ring center [g/cm^2]
+model.a_min, model.a_max       grain-size grid limits [cm]
+priors.alpha                   turbulence parameter, dimensionless
+priors.vf                      fragmentation velocity [cm/s]
+priors.eps                     dust-to-gas ratio at the ring center, dimensionless
+priors.T                       temperature normalization [K]
+```
+
 Advanced options can be omitted. By default, `oversampling_correction` is true,
 `include_calibration_penalty` is true, and the calibration factors use a flat
 `1 +/- 3*cal_error` sampling prior with a Gaussian calibration penalty in the
