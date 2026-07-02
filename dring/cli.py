@@ -62,6 +62,76 @@ def _print_check(problem: RingFitProblem) -> None:
     )
 
 
+def _config_help_text() -> str:
+    return textwrap.dedent(
+        """\
+        dring YAML config quick reference
+
+        For the full reference, see:
+          docs/config_help.md
+
+        Minimal structure:
+          scattering_formula: zhu2019
+          data:
+            bands:
+              - wavelength_cm: 0.13
+                band_name: band6
+                angular_resolution_arcsec: 0.05
+                cal_error: 0.10
+                profile_path: data/profile_band6.npz
+          opacity:
+            size_opac: data/default_opacity_dsharp/size_opac.npy
+            lam_opac: data/default_opacity_dsharp/lam_opac.npy
+            k_abs_opac: data/default_opacity_dsharp/k_abs_opac.npy
+            k_sca_opac: data/default_opacity_dsharp/k_sca_opac.npy
+            g_sca_opac: data/default_opacity_dsharp/g_sca_opac.npy
+            rhos_opac: data/default_opacity_dsharp/rhos_opac.npy
+          distance_pc: 101.2
+          inclination_deg: 46.0
+          fit_radii_au: [63.0, 67.0, 71.0]
+          model:
+            stellar_mass_msun: 1.9
+            ring_center_au: 67.0
+            pressure_width_au: 14.4
+            sigma_g: 21.0
+            size_res: 100
+            a_min: 1.0e-5
+            a_max: 100.0
+            temperature_slope: -0.5
+            size_distribution_q: -3.5
+          priors:
+            alpha: {type: flat, scale: log, min: 1.0e-6, max: 1.0e-1}
+            vf: {type: flat, scale: log, min: 1.0, max: 1.0e4}
+            eps: {type: flat, scale: log, min: 1.0e-3, max: 1.0}
+            T: {type: flat, scale: linear, min: 5.0, max: 30.0}
+
+        Common units:
+          wavelength_cm                 [cm]
+          angular_resolution_arcsec      beam FWHM/effective resolution [arcsec]
+          profile radius                 [au]
+          profile intensity              [Jy/sr]
+          profile rms_error              [Jy/sr]
+          distance_pc                    [pc]
+          inclination_deg                [deg]
+          fit_radii_au                   [au]
+          model.stellar_mass_msun        [Msun]
+          model.ring_center_au           [au]
+          model.pressure_width_au        [au]
+          model.sigma_g                  [g/cm^2]
+          model.a_min, model.a_max       [cm]
+          priors.vf                      [cm/s]
+          priors.T                       [K]
+
+        Notes:
+          - data.bands can contain any number of bands.
+          - Each profile_path must be an .npz with radius, intensity, rms_error.
+          - The radial model grid is automatic unless model.r_grid_au is set.
+          - Check a config without sampling:
+              dring fit -c configs/HD163296_ring1_eg.yaml --check-config
+        """
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="dring",
@@ -76,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=textwrap.dedent(
             """\
             Common workflows:
+              dring config-help
               dring demo
               dring fit -c configs/HD163296_ring1.yaml --check-config
               dring fit -c configs/HD163296_ring1.yaml
@@ -90,6 +161,10 @@ def build_parser() -> argparse.ArgumentParser:
               pip install dring
               pip install "dring[fit]"
               pip install "dring[fit,mpi]"
+
+            Config reference:
+              dring config-help
+              docs/config_help.md
             """
         ),
         formatter_class=HelpFormatter,
@@ -97,6 +172,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"dring {__version__}")
 
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
+
+    sub.add_parser(
+        "config-help",
+        help="Show the YAML config structure and common units.",
+        description="Print a compact YAML config reference with common physical units.",
+        formatter_class=HelpFormatter,
+    )
 
     demo_parser = sub.add_parser(
         "demo",
@@ -130,6 +212,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=textwrap.dedent(
             """\
             Examples:
+              dring config-help
               dring fit -c configs/HD163296_ring1.yaml --check-config
               dring fit -c configs/HD163296_ring1.yaml
               mpiexec -n 8 dring fit -c configs/HD163296_ring1.yaml
@@ -239,6 +322,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command is None:
         parser.print_help()
+        return 0
+
+    if args.command == "config-help":
+        print(_config_help_text())
         return 0
 
     if args.command == "demo":

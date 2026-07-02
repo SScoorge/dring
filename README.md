@@ -43,6 +43,15 @@ with the `mpi` extra.
 
 ## Quick Start
 
+Before fitting, check the YAML config reference:
+
+```bash
+dring config-help
+```
+
+The full reference is maintained in `docs/config_help.md`. It explains the
+input data format, model parameters, priors, units, and analysis options.
+
 Build a dust-trapping ring model directly from physical parameters:
 
 ```python
@@ -66,6 +75,7 @@ model.SDplot("quickstart_sigma_dust.png")
 To run a small fitting example from this repository:
 
 ```bash
+python -m dring fit -c configs/HD163296_ring1_eg.yaml --check-config
 python -m dring fit -c configs/HD163296_ring1_eg.yaml
 ```
 
