@@ -409,3 +409,43 @@ priors:
     min: 5.0
     max: 30.0
 ```
+
+## Posterior Analysis Example
+
+After a fit, the built-in commands can regenerate the standard products:
+
+```bash
+dring plot -r results/HD163296_ring1
+dring derived -r results/HD163296_ring1
+dring intensity -r results/HD163296_ring1
+```
+
+For a multi-modal posterior, select one mode in Python before evaluating
+derived quantities:
+
+```python
+from pathlib import Path
+
+from dring.derived import evaluate_posterior, load_posterior, summarize_table
+
+result_dir = Path("results/HD163296_ring1")
+samples = load_posterior(result_dir / "chains" / "equal_weighted_post.txt")
+
+# Parameter columns are usually:
+# 0 alpha, 1 vf, 2 eps, 3 T, followed by one calibration factor per band.
+mode = (samples[:, 1] > 8.0) & (samples[:, 1] < 80.0)
+mode_samples = samples[mode]
+
+derived_table, problem = evaluate_posterior(
+    result_dir=result_dir,
+    samples=mode_samples,
+    tau_wavelength_cm=0.13,
+    max_samples=200,
+    progress=True,
+)
+
+summarize_table(derived_table)
+```
+
+Corner-plot display ranges can be set in the YAML file under
+`analysis.corner.ranges`.
